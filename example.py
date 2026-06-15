@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask
 from threading import Thread
 
 app = Flask(__name__)
@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return "example"
+    return "Bot is running!"
 
 
 def run():
@@ -14,5 +14,5 @@ def run():
 
 
 def example():
-    t = Thread(target=run)
+    t = Thread(target=run, daemon=True)
     t.start()

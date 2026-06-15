@@ -1,37 +1,61 @@
 import os
-
-from boltiotai import openai
-
 import asyncio
+import base64
+import aiohttp
+import logging
+from groq import Groq
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 
 from example import example
 
-bot = Bot(token="8995036267:AAFyMIAWWsVblQWiVi8Q6kcNyU6dqVzRC0A")
 
-dp = Dispatcher()
-
-openai.api_key = os.environ["OPENAI_API_KEY"]
-
+# Start Flask web server thread
 example()
 
+# Telegram Bot Token
+BOT_TOKEN = "8873104622:AAGft8nftlIxAsiQAg0QoaDU8JkWAp-CTKQ"
 
-@dp.message(CommandStart(["start", "help"]))
-async def welcome(message: types.Message):
-    await message.reply("Hello! I am GPT Chat BOT. You can ask me anything :)")
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+# Create Groq Client
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# OR use environment variable:
+# client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+print("GROQ_API_KEY =", os.getenv("GROQ_API_KEY"))
+
+
+@dp.message(CommandStart())
+async def start_handler(message: types.Message):
+    await message.answer("Hello! I am GPT Chat Bot 🤖\n\nAsk me anything!")
+
+
+@dp.message(Command("help"))
+async def help_handler(message: types.Message):
+    await message.answer("Send me any message and I'll reply using AI.")
 
 
 @dp.message()
 async def gpt(message: types.Message):
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": message.text},
-    ]
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": message.text},
+            ],
+        )
 
-    response = openai.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        reply = response.choices[0].message.content
 
-    await message.reply(response["choices"][0]["message"]["content"])
+        await message.reply(reply)
+
+        print("Response:", response)
+
+    except Exception as e:
+        print("ERROR:", e)
+        await message.reply(f"Error: {e}")
 
 
 async def main():
@@ -39,4 +63,6 @@ async def main():
 
 
 if __name__ == "__main__":
+    import asyncio
+
     asyncio.run(main())
